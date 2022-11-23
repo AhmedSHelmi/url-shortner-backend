@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, redirect
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Column, Integer, String, Float
 import os
@@ -6,17 +6,16 @@ from flask_marshmallow import Marshmallow
 from flask_jwt_extended import JWTManager, jwt_required, create_access_token, verify_jwt_in_request, get_jwt_identity
 from .helpers import generate_url
 from urllib.parse import urlparse
-from flask_cors import CORS
-
+from flask.ext.autodoc import Autodoc
 
 app = Flask(__name__)
-
-cors = CORS(app)
+auto = Autodoc(app)
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + \
     os.path.join(basedir, 'jwt.db')
 app.config['JWT_SECRET_KEY'] = 'super-secret'  # Change on production
+app.config['PROPAGATE_EXCEPTIONS'] = True
 
 
 db = SQLAlchemy(app)
@@ -26,6 +25,7 @@ jwt = JWTManager(app)
 
 # DB set up and seeders
 @app.cli.command('db_create')
+@auto.doc()
 def db_create():
     db.create_all()
     print('Database created')
@@ -44,7 +44,7 @@ def db_seed():
                      email='admin@admin.com',
                      password='admin')
     test_url = Url(
-        url = "linkedin.com"
+        url = "linkedin.com",
         shortend = "sadasd3324"
     )
     db.session.add(test_user)
@@ -57,22 +57,25 @@ def db_seed():
 
 
 @app.route('/<short>', methods=['GET'])
+@auto.doc()
 @jwt_required()
-def index(subject):
+def index(short):
+    print(short)
     #redirect to url
-    Url.query.filter().filter_by(
-        shortend=short).first()
-    
+    site = Url.query.filter().filter_by(
+        shortend=short).first().site
+    print(site)
+    return redirect(site, code=302)
 
 
 # User routes
 @app.route('/register', methods=['POST'])
+@auto.doc()
 def register():
     email = request.form['email']
     test = User.query.filter_by(email=email).first()
     if test:
         response = jsonify(message='That email already exists'), 409
-        response.headers.add('Access-Control-Allow-Origin', '*')
         return response
     else:
         first_name = request.form['first_name']
@@ -83,11 +86,11 @@ def register():
         db.session.add(user)
         db.session.commit()
         response =  jsonify(message='User created successfully'), 201
-        response.headers.add('Access-Control-Allow-Origin', '*')
         return response
 
 
 @app.route('/login', methods=['GET'])
+@auto.doc()
 def login():
     if request.is_json:
         email = request.json['email']
@@ -100,7 +103,6 @@ def login():
     if test:
         access_token = create_access_token(identity=email)
         response = jsonify(message='Login Successful', access_token=access_token)
-        response.headers.add('Access-Control-Allow-Origin', '*')
         return response
         
     else:
@@ -129,15 +131,12 @@ def create_url():
         db.session.add(url)
         db.session.commit()
         response = jsonify(message="URL Was Saved to your list!")
-        response.headers.add('Access-Control-Allow-Origin', '*')
         return response
     else:
         url = Url(url=generate_url(url_input), user=None)
         db.session.add(url)
         db.session.commit()
-        response = jsonify(message="URL was saved to browser cache")
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Credentials', '*')
+        response = jsonify(message=flask.request.host+"/"+generate_url(url_input))
         return response
 
 
@@ -145,7 +144,7 @@ def create_url():
 @jwt_required()
 def get_users_links():
     identity = get_jwt_identity()
-    urls = [item.url for item in Url.query.filter(Url.user.has(email=identity)).all()]
+    urls = [request.host+"/"+item.url for item in Url.query.filter(Url.user.has(email=identity)).all()]
     response =  jsonify(message=urls)
     response.headers.add('Access-Control-Allow-Origin', '*')
     return response
