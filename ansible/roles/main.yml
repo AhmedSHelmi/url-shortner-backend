@@ -1,3 +1,38 @@
+- name: gather code artifacts (__init__.py)
+  template:
+      src: templates/__init__.py.j2
+      dest: "/opt/app/__init__.py"
+  
+- name: gather code artifacts (app.py)
+  template:
+      src: templates/app.py.j2
+      dest: "/opt/app/app.py"
+
+- name: gather code artifacts (dev.txt)
+  template:
+      src: templates/dev.txt.j2
+      dest: "/opt/app/dev.txt"
+
+- name: gather code artifacts (helpers.py)
+  template:
+      src: templates/helpers.py.j2
+      dest: "/opt/app/helpers.py"
+
+- name: gather code artifacts (jwt.db)
+  template:
+      src: templates/jwt.db.j2
+      dest: "/opt/app/jwt.db"
+
+- name: gather code artifacts (requirements.txt)
+  template:
+      src: templates/requirements.txt.j2
+      dest: "/opt/app/requirements.txt"
+
+- name: gather code artifacts (test.py)
+  template:
+      src: templates/test.py.j2
+      dest: "/opt/app/test.py"
+
 - name: Create Service File for Flask/Gunicorn
   template:
       src: templates/url_service.service.j2
