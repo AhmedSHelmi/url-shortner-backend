@@ -1,0 +1,12 @@
+[Unit]
+Description=URL SHORTNER API
+After=network.target
+
+[Service]
+User=root
+Group=root
+WorkingDirectory= /opt/app
+ExecStart= gunicorn --bind 127.0.0.1:80 --timeout 20 "app"
+
+[Install]
+WantedBy=multi-user.target

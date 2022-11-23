@@ -1,0 +1,17 @@
+- name: Create Service File for Flask/Gunicorn
+  template:
+      src: templates/url_service.service.j2
+      dest: "/etc/systemd/system/url_service.service"
+  notify:
+    - Restart url_service
+
+- name: Start Enable url_service service
+  service:
+      name: url_service
+      state: started
+      enabled: yes
+
+- name: Restart url_service
+  service:
+      name: url_service
+      state: restarted
